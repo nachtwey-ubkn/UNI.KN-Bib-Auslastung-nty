@@ -1,0 +1,75 @@
+# Automation of Website updates
+
+name: UKN Bib Auslastung
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# Control when workflow will run (only on repository dispatch)
+on:
+  repository_dispatch:
+    types: [new-update]
+  #push:
+  #  branches:
+  #    - main
+  #workflow_dispatch: 
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # Load data, compute data and upload to GitHub Pages
+  compute-data:
+    # environment for job
+    environment: production
+    # runner for job
+    runs-on: ubuntu-latest
+    # environment variables for job
+    env:
+      CAPACITY: "${{ secrets.CAPACITY }}"
+      MAPPING: "${{ secrets.MAPPING }}"
+      PASSWORD: "${{ secrets.PASSWORD }}"
+      PORT: "${{ secrets.PORT }}"
+      SENDER: "${{ secrets.SENDER }}"
+      SERVER: "${{ secrets.SERVER }}"
+      USER: "${{ secrets.USER }}"      
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas python-dotenv
+
+      - name: Run script
+        run: python scripts/main.py
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
+
+  # Deploy to GitHub Pages
+  deploy-pages:
+    needs: compute-data
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

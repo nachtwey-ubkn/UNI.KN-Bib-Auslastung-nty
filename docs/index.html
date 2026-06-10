@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UNI.KN Bibliothek Auslastung</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --surface: rgba(255, 255, 255, 0.85);
+      --surface-strong: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: rgba(30, 41, 59, 0.08);
+      --shadow: 0 20px 40px rgba(30, 41, 59, 0.05);
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --orange: #f97316;
+      --red: #ef4444;
+      --accent: #1e3a3a;
+      --radius-xl: 24px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background:
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.08), transparent 40%),
+        radial-gradient(circle at right top, rgba(30, 58, 58, 0.06), transparent 35%),
+        var(--bg);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      width: min(1200px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0;
+    }
+
+    .hero {
+      display: grid;
+      gap: 12px;
+      padding: 32px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow);
+      margin-bottom: 32px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      margin: 0;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(30, 58, 58, 0.08);
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+      padding: 32px;
+    }
+
+    .panel h2, .section-heading h2 {
+      margin: 0 0 24px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .status-card {
+      background: var(--surface-strong);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .status-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(30, 41, 59, 0.04);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .card-label {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .card-meta {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .progress-wrapper {
+      position: relative;
+    }
+
+    .progress-track {
+      height: 12px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .meta-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .chart-timestamp {
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chart-timestamp::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .compact-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .legend-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--surface-strong);
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot.green { background: var(--green); }
+    .dot.yellow { background: var(--yellow); }
+    .dot.orange { background: var(--orange); }
+    .dot.red { background: var(--red); }
+
+    /* Info Grid Setup */
+    .section {
+      margin-top: 32px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .info-card {
+      background: var(--surface-strong);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .info-card h3 {
+      margin: 0 0 6px 0;
+      font-size: 1rem;
+      color: var(--accent);
+      display: flex;
+      gap: 8px;
+    }
+
+    .info-card h3 span {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .info-card p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .method-box {
+      padding: 20px 22px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(30, 58, 58, 0.05), rgba(16, 185, 129, 0.03));
+      margin-top: 12px;
+    }
+
+    .method-box p {
+      margin: 0;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 640px) {
+      .page { width: calc(100% - 24px); padding: 20px 0; }
+      .hero, .panel { padding: 20px; }
+      .compact-legend { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <p class="eyebrow">Universitätsbibliothek Konstanz</p>
+      <h1>Auslastung Buchbereiche B & J</h1>
+    </header>
+
+    <main class="content">
+      <section class="panel" aria-labelledby="live-heading">
+        <h2 id="live-heading">Aktuelle Belegung</h2>
+        
+        <div id="live-dashboard" class="dashboard-grid">
+          <p style="color: var(--muted);">Lade Live-Daten...</p>
+        </div>
+
+        <div class="meta-footer">
+          <div id="update-time" class="chart-timestamp">Aktualisiere...</div>
+          
+          <div class="compact-legend" aria-label="Farblegende">
+            <div class="legend-pill"><span class="dot green"></span> Geringe Auslastung </div>
+            <div class="legend-pill"><span class="dot yellow"></span> Moderate Auslastung </div>
+            <div class="legend-pill"><span class="dot orange"></span> Starke Auslastung </div>
+            <div class="legend-pill"><span class="dot red"></span> Sehr Starke Auslastung </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <section class="section" aria-labelledby="legend-heading">
+      <div class="section-heading">
+        <h2 id="legend-heading">Buchbereiche</h2>
+      </div>
+
+      <div class="info-grid">
+        <article class="info-card">
+          <h3><span>INFO</span> Infozentrum</h3>
+          <p>160 Arbeitsplätze im Infozentrum, Bibcafe und allen anderen Bereiche auf BA.</p>
+        </article>
+        <article class="info-card">
+          <h3><span>BHEA</span> Ebene BH2/BH3 </h3>
+          <p>62 Einzelarbeitsplätze auf den Ebenen BH2 und BH3.</p>
+        </article>
+        <article class="info-card">
+          <h3><span>BG23</span> Ebene BG2/BG3 </h3>
+          <p>85 Arbeitsplätze auf den Ebenen BG2 und BG3.</p>
+        </article>
+        <article class="info-card">
+          <h3><span>BG56</span> Ebene BG5/BG6 </h3>
+          <p>65 Einzelarbeitsplätze auf Ebene BG5 und BG6.</p>
+        </article>
+        <article class="info-card">
+          <h3><span>BSGA</span> Galerieplätze BS</h3>
+          <p>165 Arbeitsplätze auf den Ebenen BS2 bis BS6 mit Ausnahme der Gruppenarbeitsräume auf BS5, den Arbeitsplätze in den Fluren von BS2/BS3 nach BG2/BG3 sowie an den großen Tischen auf BS3 Richtung Übergang BG3.</p>
+        </article>
+        <article class="info-card">
+          <h3><span>BSLS</span> Lesesaal</h3>
+          <p>59 Arbeitsplätze im Lesesaal auf BS6.</p>
+        </article>
+        <article class="info-card">
+          <h3><span>BSEA</span> Gruppentische BS2/BS3 </h3>
+          <p>90 Arbeitsplätze in den Fluren von BS2/BS3 nach BG2/BG3 sowie an den großen Tischen auf BS3 Richtung Übergang BG3.</p>
+        </article>
+        <article class="info-card">
+          <h3><span>JGAR</span> Gruppenarbeitsräume J</h3>
+          <p>54 Gruppenarbeitsräume in J2-J6.</p>
+        </article>
+        <article class="info-card">
+          <h3><span>JEAP</span> Einzelarbeitsplätze J</h3>
+          <p>140 Einzelarbeitsplätze in J2-J6.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="method-heading">
+      <div class="section-heading">
+        <h2 id="method-heading">Methodik</h2>
+      </div>
+      <div class="method-box">
+        <p>
+          Die Daten werden einmal stündlich aktualisiert und geben eine Indikation, wie viele Arbeitsplätze in den einzelnen Bereichen belegt sind.
+          Grün bedeutet überwiegend frei, danach folgen im Ampelsystem Gelb, Orange bis Rot, wobei Rot eine sehr hohe Auslastung anzeigt.
+          Die nur von der Bibliothek aus zugänglichen Räume J213, BS217 und BG335 sind nicht in der Auslastung enthalten.
+          Die Übersicht soll dabei helfen, schneller einen freien Platz zu finden und die Auslastung in den einzelnen Bereichen besser zu verteilen.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // System Capacity Config
+    const capacityMap = {
+      'INFO': 160,
+      'BHEA': 62,
+      'BG23': 85,
+      'BG56': 65,
+      'BSGA': 165,
+      'BSLS': 59,
+      'BSEA': 90,
+      'JGAR': 54,
+      'JEAP': 140
+    };
+
+    async function initDashboard() {
+      const gridContainer = document.getElementById('live-dashboard');
+      const timeContainer = document.getElementById('update-time');
+      
+      try {
+        const response = await fetch('./temp/oc_values.csv');
+        if (!response.ok) throw new Error('Daten konnten nicht geladen werden.');
+        
+        const text = await response.text();
+        const lines = text.trim().split('\n');
+        
+        let fileTimestamp = '';
+        const dataRows = [];
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          const delimiter = line.includes(';') ? ';' : ',';
+          const parts = line.split(delimiter);
+          if (parts.length < 2) continue;
+
+          const key = parts[0].trim();
+          const valueStr = parts[1].trim();
+
+          if (key.toLowerCase().startsWith('timestamp') || key.toLowerCase().startsWith('zeit')) {
+            fileTimestamp = 'Stand: ' + valueStr;
+            continue;
+          }
+
+          const percentage = parseFloat(valueStr);
+          if (isNaN(percentage)) continue; 
+
+          dataRows.push({ key, percentage });
+        }
+
+        // Sort dataRows dynamically to exactly match the target capacityMap's structured order
+        const orderKeys = Object.keys(capacityMap);
+        dataRows.sort((a, b) => orderKeys.indexOf(a.key) - orderKeys.indexOf(b.key));
+
+        let gridHtml = '';
+
+        // Generate matching elements
+        for (const row of dataRows) {
+          const totalSeats = capacityMap[row.key] || 100;
+
+          let barColor = 'var(--green)';
+          if (row.percentage > 80) barColor = 'var(--red)';
+          else if (row.percentage > 60) barColor = 'var(--orange)';
+          else if (row.percentage > 40) barColor = 'var(--yellow)';
+
+          gridHtml += `
+            <div class="status-card">
+              <div class="card-header">
+                <span class="card-label">${row.key}</span>
+                <span class="card-meta">Gesamt: ${totalSeats} Plätze</span>
+              </div>
+              <div class="progress-wrapper">
+                <div class="progress-track">
+                  <div class="progress-bar" style="width: ${Math.min(row.percentage, 100)}%; background-color: ${barColor};"></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        gridContainer.innerHTML = gridHtml;
+        timeContainer.innerText = fileTimestamp || 'Stand: Unbekannt';
+
+      } catch (err) {
+        console.error(err);
+        gridContainer.innerHTML = `<p style="color: var(--red);">Fehler beim Laden der aktuellen Belegungswerte.</p>`;
+        timeContainer.innerText = 'Fehler';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', initDashboard);
+  </script>
+</body>
+</html>
