@@ -207,6 +207,24 @@
       gap: 16px;
     }
 
+    .kim-heading {
+      margin-bottom: 10px;
+    }
+    
+    .kim-heading-line {
+      display: inline-block;
+      background: #59c7eb;
+      color: #000;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    
+    .kim-heading-line.main {
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      padding: 6px 16px 10px;
+    }
+
     .legend-pill {
       display: flex;
       align-items: center;
@@ -224,6 +242,7 @@
       height: 10px;
       border-radius: 50%;
     }
+    
     .dot.green { background: var(--green); }
     .dot.yellow { background: var(--yellow); }
     .dot.orange { background: var(--orange); }
@@ -291,7 +310,9 @@
   <div class="page">
     <header class="hero">
       <p class="eyebrow">Universitätsbibliothek Konstanz</p>
-      <h1>Auslastung Buchbereiche B & J</h1>
+      <h1 class="kim-heading" aria-label="Auslastung Buchbereiche B & J">
+        <span class="kim-heading-line main">Auslastung Buchbereiche B &amp; J</span>
+      </h1>
     </header>
 
     <main class="content">
