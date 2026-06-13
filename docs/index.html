@@ -129,8 +129,7 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      gap: 16px;
+      position: relative; /* Context for absolute info button */
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
@@ -141,24 +140,57 @@
 
     .card-header {
       display: flex;
-      justify-content: space-between;
-      align-items: baseline;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      padding-right: 24px; /* Leave space so label never hits info button */
     }
 
     .card-label {
       font-size: 1.1rem;
       font-weight: 700;
       color: var(--text);
+      line-height: 1.3;
     }
 
+    /* Info Button placed nicely in the upper right corner */
+    .info-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease, transform 0.2s ease;
+      border-radius: 50%;
+    }
+
+    .info-btn:hover {
+      color: var(--accent);
+      transform: scale(1.1);
+    }
+
+    .info-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Left-aligned and placed below the progress bar */
     .card-meta {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
       color: var(--muted);
+      margin-top: 8px;
+      display: block;
     }
 
     .progress-wrapper {
       position: relative;
+      width: 100%;
     }
 
     .progress-track {
@@ -173,6 +205,29 @@
       width: 0%;
       border-radius: 999px;
       transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Expandable Info Text Block */
+    .card-info-text {
+      font-size: 0.85rem;
+      color: var(--muted);
+      background: var(--bg);
+      padding: 0;
+      margin-top: 0;
+      margin-bottom: 0;
+      border-radius: var(--radius-md);
+      border: 0 solid var(--border);
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease, margin 0.3s ease, border-width 0.1s ease;
+    }
+
+    /* Adds padding and bottom margin only when open to keep spacing perfectly tight when closed */
+    .card-info-text.visible {
+      max-height: 150px; 
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      border-width: 1px;
     }
 
     .meta-footer {
@@ -248,41 +303,8 @@
     .dot.orange { background: var(--orange); }
     .dot.red { background: var(--red); }
 
-    /* Info Grid Setup */
     .section {
       margin-top: 32px;
-    }
-
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
-    }
-
-    .info-card {
-      background: var(--surface-strong);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 16px;
-    }
-
-    .info-card h3 {
-      margin: 0 0 6px 0;
-      font-size: 1rem;
-      color: var(--accent);
-      display: flex;
-      gap: 8px;
-    }
-
-    .info-card h3 span {
-      color: var(--muted);
-      font-weight: 400;
-    }
-
-    .info-card p {
-      margin: 0;
-      font-size: 0.9rem;
-      color: var(--muted);
     }
 
     .method-box {
@@ -336,51 +358,6 @@
       </section>
     </main>
 
-    <section class="section" aria-labelledby="legend-heading">
-      <div class="section-heading">
-        <h2 id="legend-heading">Buchbereiche</h2>
-      </div>
-
-      <div class="info-grid">
-        <article class="info-card">
-          <h3>Infozentrum</h3>
-          <p>160 Arbeitsplätze im Infozentrum, Bibcafe und allen anderen Bereiche auf BA.</p>
-        </article>
-        <article class="info-card">
-          <h3>Ebene BH2/BH3 </h3>
-          <p>62 Einzelarbeitsplätze auf den Ebenen BH2 und BH3.</p>
-        </article>
-        <article class="info-card">
-          <h3>Ebene BG2/BG3 </h3>
-          <p>85 Arbeitsplätze auf den Ebenen BG2 und BG3.</p>
-        </article>
-        <article class="info-card">
-          <h3>Ebene BG5/BG6 </h3>
-          <p>65 Einzelarbeitsplätze auf Ebene BG5 und BG6.</p>
-        </article>
-        <article class="info-card">
-          <h3>Galerieplätze BS</h3>
-          <p>165 Arbeitsplätze auf den Ebenen BS2 bis BS6 mit Ausnahme der Gruppenarbeitsräume auf BS5, den Arbeitsplätze in den Fluren von BS2/BS3 nach BG2/BG3 sowie an den großen Tischen auf BS3 Richtung Übergang BG3.</p>
-        </article>
-        <article class="info-card">
-          <h3>Lesesaal</h3>
-          <p>59 Arbeitsplätze im Lesesaal auf BS6.</p>
-        </article>
-        <article class="info-card">
-          <h3>Gruppentische BS2/BS3 </h3>
-          <p>90 Arbeitsplätze in den Fluren von BS2/BS3 nach BG2/BG3 sowie an den großen Tischen auf BS3 Richtung Übergang BG3.</p>
-        </article>
-        <article class="info-card">
-          <h3>Gruppenarbeitsräume J</h3>
-          <p>54 Gruppenarbeitsräume in J2-J6.</p>
-        </article>
-        <article class="info-card">
-          <h3>Einzelarbeitsplätze J</h3>
-          <p>140 Einzelarbeitsplätze in J2-J6.</p>
-        </article>
-      </div>
-    </section>
-
     <section class="section" aria-labelledby="method-heading">
       <div class="section-heading">
         <h2 id="method-heading">Methodik</h2>
@@ -410,7 +387,7 @@
       'JEAP': 140
     };
 
-    // Area Label Mapping for easier understanding of displayed information
+    // Area Label Mapping
     const areaLabelMap = {
       'INFO': 'Infozentrum',
       'BHEA': 'Ebene BH2/BH3',
@@ -422,6 +399,39 @@
       'JGAR': 'Gruppenarbeitsräume J',
       'JEAP': 'Einzelarbeitsplätze J'
     };
+
+    // Context description strings
+    const areaDescriptionMap = {
+      'INFO': '160 Arbeitsplätze im Infozentrum, Bibcafe und allen anderen Bereiche auf BA.',
+      'BHEA': '62 Einzelarbeitsplätze auf den Ebenen BH2 und BH3.',
+      'BG23': '85 Arbeitsplätze auf den Ebenen BG2 und BG3.',
+      'BG56': '65 Einzelarbeitsplätze auf Ebene BG5 und BG6.',
+      'BSGA': '165 Arbeitsplätze auf den Ebenen BS2 bis BS6 mit Ausnahme der Gruppenarbeitsräume auf BS5, den Arbeitsplätze in den Fluren von BS2/BS3 nach BG2/BG3 sowie an den großen Tischen auf BS3 Richtung Übergang BG3.',
+      'BSLS': '59 Arbeitsplätze im Lesesaal auf BS6.',
+      'BSEA': '90 Arbeitsplätze in den Fluren von BS2/BS3 nach BG2/BG3 sowie an den großen Tischen auf BS3 Richtung Übergang BG3.',
+      'JGAR': '54 Gruppenarbeitsräume in J2-J6.',
+      'JEAP': '140 Einzelarbeitsplätze in J2-J6.'
+    };
+
+    // Mapping for seats or rooms
+    const seatroomMap = {
+      'INFO': 'Plätze',
+      'BHEA': 'Plätze',
+      'BG23': 'Plätze',
+      'BG56': 'Plätze',
+      'BSGA': 'Plätze',
+      'BSLS': 'Plätze',
+      'BSEA': 'Plätze',
+      'JGAR': 'Räume',
+      'JEAP': 'Plätze'
+    }
+
+    function toggleInfo(key) {
+      const infoText = document.getElementById(`info-${key}`);
+      if (infoText) {
+        infoText.classList.toggle('visible');
+      }
+    }
 
     async function initDashboard() {
       const gridContainer = document.getElementById('live-dashboard');
@@ -459,16 +469,16 @@
           dataRows.push({ key, percentage });
         }
 
-        // Sort dataRows dynamically to exactly match the target capacityMap's structured order
         const orderKeys = Object.keys(capacityMap);
         dataRows.sort((a, b) => orderKeys.indexOf(a.key) - orderKeys.indexOf(b.key));
 
         let gridHtml = '';
 
-        // Generate matching elements
         for (const row of dataRows) {
           const totalSeats = capacityMap[row.key] || 100;
           const displayLabel = areaLabelMap[row.key] || row.key;
+          const displayseats = seatroomMap[row.key] || row.key;
+          const description = areaDescriptionMap[row.key] || '';
 
           let barColor = 'var(--green)';
           if (row.percentage > 80) barColor = 'var(--red)';
@@ -477,15 +487,29 @@
 
           gridHtml += `
             <div class="status-card">
+              <button class="info-btn" onclick="toggleInfo('${row.key}')" title="Information anzeigen" aria-label="Information anzeigen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+              </button>
+              
               <div class="card-header">
                 <span class="card-label">${displayLabel}</span>
-                <span class="card-meta">Gesamt: ${totalSeats} Plätze</span>
               </div>
+              
+              <div class="card-info-text" id="info-${row.key}">
+                ${description}
+              </div>
+              
               <div class="progress-wrapper">
                 <div class="progress-track">
                   <div class="progress-bar" style="width: ${Math.min(row.percentage, 100)}%; background-color: ${barColor};"></div>
                 </div>
               </div>
+              
+              <span class="card-meta">Gesamt: ${totalSeats} ${displayseats}</span>
             </div>
           `;
         }
