@@ -2,16 +2,9 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>UNI.KN Bibliothek Auslastung</title>
-  <link rel="icon" type="image/png" href="logo11.png">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0a7d3c">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="logo11.png">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Bib-Auslastung">
+  <title>UNI.KN Bibliothek Auslastung</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       color-scheme: light;
@@ -115,7 +108,6 @@
       letter-spacing: -0.02em;
     }
 
-    /* Grid Layout */
     .dashboard-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -129,7 +121,7 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
-      position: relative; /* Context for absolute info button */
+      position: relative;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
@@ -142,7 +134,7 @@
       display: flex;
       align-items: flex-start;
       margin-bottom: 12px;
-      padding-right: 24px; /* Leave space so label never hits info button */
+      padding-right: 56px; /* Extra room for both action buttons */
     }
 
     .card-label {
@@ -152,11 +144,17 @@
       line-height: 1.3;
     }
 
-    /* Info Button placed nicely in the upper right corner */
-    .info-btn {
+    /* Action controls placement container */
+    .card-controls {
       position: absolute;
       top: 20px;
       right: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .action-btn {
       background: none;
       border: none;
       padding: 0;
@@ -169,17 +167,16 @@
       border-radius: 50%;
     }
 
-    .info-btn:hover {
+    .action-btn:hover {
       color: var(--accent);
       transform: scale(1.1);
     }
 
-    .info-btn svg {
+    .action-btn svg {
       width: 18px;
       height: 18px;
     }
 
-    /* Left-aligned and placed below the progress bar */
     .card-meta {
       font-size: 0.85rem;
       font-weight: 600;
@@ -207,8 +204,8 @@
       transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    /* Expandable Info Text Block */
-    .card-info-text {
+    /* Expandable containers styling */
+    .card-info-text, .card-chart-container {
       font-size: 0.85rem;
       color: var(--muted);
       background: var(--bg);
@@ -222,10 +219,16 @@
       transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease, margin 0.3s ease, border-width 0.1s ease;
     }
 
-    /* Adds padding and bottom margin only when open to keep spacing perfectly tight when closed */
     .card-info-text.visible {
       max-height: 150px; 
       padding: 10px 14px;
+      margin-bottom: 14px;
+      border-width: 1px;
+    }
+
+    .card-chart-container.visible {
+      max-height: 260px;
+      padding: 12px;
       margin-bottom: 14px;
       border-width: 1px;
     }
@@ -260,24 +263,6 @@
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
-    }
-
-    .kim-heading {
-      margin-bottom: 10px;
-    }
-    
-    .kim-heading-line {
-      display: inline-block;
-      background: #59c7eb;
-      color: #000;
-      font-weight: 900;
-      line-height: 1.15;
-      white-space: normal;
-    }
-    
-    .kim-heading-line.main {
-      font-size: clamp(1.8rem, 4vw, 2.5rem);
-      padding: 6px 16px 10px;
     }
 
     .legend-pill {
@@ -332,9 +317,7 @@
   <div class="page">
     <header class="hero">
       <p class="eyebrow">Universitätsbibliothek Konstanz</p>
-      <h1 class="kim-heading" aria-label="Auslastung Buchbereiche B & J">
-        <span class="kim-heading-line main">Auslastung Buchbereiche B &amp; J</span>
-      </h1>
+      <h1>Auslastung Bibliothek</h1>
     </header>
 
     <main class="content">
@@ -342,7 +325,7 @@
         <h2 id="live-heading">Aktuelle Belegung</h2>
         
         <div id="live-dashboard" class="dashboard-grid">
-          <p style="color: var(--muted);">Lade Live-Daten...</p>
+          <p style="color: var(--muted);">Lade Live-Daten und Zeitreihen...</p>
         </div>
 
         <div class="meta-footer">
@@ -374,63 +357,162 @@
   </div>
 
   <script>
-    // System Capacity Config
     const capacityMap = {
-      'INFO': 160,
-      'BHEA': 62,
-      'BG23': 85,
-      'BG56': 65,
-      'BSGA': 165,
-      'BSLS': 59,
-      'BSEA': 90,
-      'JGAR': 54,
-      'JEAP': 140
+      'INFO': 160, 'BG23': 85, 'BG56': 65, 'BSLS': 59, 'BSBG': 5, 'BSEA': 90, 'BSGA': 165, 'JGAR': 54, 'JEAP': 140
     };
 
-    // Area Label Mapping
     const areaLabelMap = {
-      'INFO': 'Infozentrum',
-      'BHEA': 'Ebene BH2/BH3',
-      'BG23': 'Ebene BG2/BG3',
-      'BG56': 'Ebene BG5/BG6',
-      'BSGA': 'Galerieplätze BS',
-      'BSLS': 'Lesesaal',
-      'BSEA': 'Gruppentische BS2/BS3',
-      'JGAR': 'Gruppenarbeitsräume J',
-      'JEAP': 'Einzelarbeitsplätze J'
+      'INFO': 'Info-Zentrum', 'BG23': 'Ebenen BG2/BG3', 'BG56': 'Ebenen BG5/BG6', 'BSLS': 'Lesesaal (Übergang BS6-BG6)', 'BSBG': 'Übergang BS5 nach BG5', 'BSEA': 'Übergang BS2/BS3 nach BG2/BG3', 'BSGA': 'Buchbereich BS', 'JGAR': 'Arbeitsräume J', 'JEAP': 'Einzelarbeitsplätze J'
     };
 
-    // Context description strings
     const areaDescriptionMap = {
-      'INFO': '160 Arbeitsplätze im Infozentrum, Bibcafe und allen anderen Bereiche auf BA.',
-      'BHEA': '62 Einzelarbeitsplätze auf den Ebenen BH2 und BH3.',
-      'BG23': '85 Arbeitsplätze auf den Ebenen BG2 und BG3.',
-      'BG56': '65 Einzelarbeitsplätze auf Ebene BG5 und BG6.',
-      'BSGA': '165 Arbeitsplätze auf den Ebenen BS2 bis BS6 mit Ausnahme der Gruppenarbeitsräume auf BS5, den Arbeitsplätze in den Fluren von BS2/BS3 nach BG2/BG3 sowie an den großen Tischen auf BS3 Richtung Übergang BG3.',
-      'BSLS': '59 Arbeitsplätze im Lesesaal auf BS6.',
-      'BSEA': '90 Arbeitsplätze in den Fluren von BS2/BS3 nach BG2/BG3 sowie an den großen Tischen auf BS3 Richtung Übergang BG3.',
-      'JGAR': '54 Gruppenarbeitsräume in J2-J6.',
-      'JEAP': '140 Einzelarbeitsplätze in J2-J6.'
+      'INFO': '160 Arbeitsplätze im Infozentrum, Bibcafe und allen anderen Bereiche auf BA.', 'BG23': '145 Arbeitsplätze auf den Ebenen BG2/BG3 und BH2/BH3.', 'BG56': '65 Einzelarbeitsplätze auf Ebene BG5 und Ebene BG6.', 'BSLS': '59 Arbeitsplätze im Lesesaal im Übergang von BS6 nach BG6.', 'BSBG': '5 Gruppenarbeitsräume im Übergang von BS5 nach BG5.', 'BSEA': '90 Arbeitsplätze in den Fluren von BS2/BS3 nach BG2/BG3 sowie an den großen Tischen auf BS3 Richtung Übergang BG3.', 'BSGA': '165 Arbeitsplätze auf den Ebenen BS2 bis BS6 mit Ausnahme der Gruppenarbeitsräume auf BS5, den Arbeitsplätze in den Fluren von BS2/BS3 nach BG2/BG3 sowie an den großen Tischen auf BS3 Richtung Übergang BG3.', 'JGAR': '54 Arbeitsräume in J2-J6.', 'JEAP': '140 Einzelarbeitsplätze in J2-J6.'
     };
 
-    // Mapping for seats or rooms
     const seatroomMap = {
-      'INFO': 'Plätze',
-      'BHEA': 'Plätze',
-      'BG23': 'Plätze',
-      'BG56': 'Plätze',
-      'BSGA': 'Plätze',
-      'BSLS': 'Plätze',
-      'BSEA': 'Plätze',
-      'JGAR': 'Räume',
-      'JEAP': 'Plätze'
-    }
+      'INFO': 'Plätze', 'BG23': 'Plätze', 'BG56': 'Plätze', 'BSLS': 'Plätze', 'BSBG': 'Räume', 'BSEA': 'Plätze', 'BSGA': 'Plätze', 'JGAR': 'Räume', 'JEAP': 'Plätze'
+    };
+
+    // Global memory to hold loaded time series and tracking charts
+    let timeSeriesData = { lw: {}, td: {} };
+    let activeCharts = {};
+    let globalTimeString = "12:00"; // Fallback cutoff updated live by live-status file
 
     function toggleInfo(key) {
-      const infoText = document.getElementById(`info-${key}`);
-      if (infoText) {
-        infoText.classList.toggle('visible');
+      // Close chart if open
+      const chartCont = document.getElementById(`chart-cont-${key}`);
+      if (chartCont && chartCont.classList.contains('visible')) {
+        chartCont.classList.remove('visible');
       }
+      const infoText = document.getElementById(`info-${key}`);
+      if (infoText) infoText.classList.toggle('visible');
+    }
+
+    function toggleChart(key) {
+      // Close info text if open
+      const infoText = document.getElementById(`info-${key}`);
+      if (infoText && infoText.classList.contains('visible')) {
+        infoText.classList.remove('visible');
+      }
+
+      const chartCont = document.getElementById(`chart-cont-${key}`);
+      if (!chartCont) return;
+
+      chartCont.classList.toggle('visible');
+
+      // Build chart canvas dynamically if it is being visible and hasn't been instantiated yet
+      if (chartCont.classList.contains('visible') && !activeCharts[key]) {
+        buildAreaChart(key);
+      }
+    }
+
+    async function parseCSVFile(url) {
+      const response = await fetch(url);
+      if (!response.ok) return {};
+      const text = await response.text();
+      const lines = text.trim().split('\n');
+      const result = {};
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!line || line.toLowerCase().startsWith('area')) continue;
+        const delimiter = line.includes(';') ? ';' : ',';
+        const parts = line.split(delimiter);
+        if (parts.length < 3) continue;
+
+        const area = parts[0].trim();
+        const time = parts[1].trim();
+        const capacity = parseFloat(parts[2].trim());
+
+        if (!result[area]) result[area] = [];
+        result[area].push({ time, capacity });
+      }
+      return result;
+    }
+
+    function buildAreaChart(key) {
+      const ctx = document.getElementById(`chart-${key}`).getContext('2d');
+      const lwRaw = timeSeriesData.lw[key] || [];
+      const tdRaw = timeSeriesData.td[key] || [];
+
+      // Align x-axis labels with timeline from historical data profile
+      const labels = lwRaw.map(d => d.time);
+
+      // Map out 'Today So Far' data up to cutoff time tracker
+      const todayData = labels.map(t => {
+        const entry = tdRaw.find(d => d.time === t);
+        return (entry && t <= globalTimeString) ? entry.capacity : null;
+      });
+
+      // Map out reference curve from last week
+      const lastWeekData = labels.map(t => {
+        const entry = lwRaw.find(d => d.time === t);
+        return entry ? entry.capacity : null;
+      });
+
+      // Map out 'Proxy for Next Hours' matching remaining segment
+      const proxyData = labels.map(t => {
+        const entry = lwRaw.find(d => d.time === t);
+        return (entry && t >= globalTimeString) ? entry.capacity : null;
+      });
+
+      activeCharts[key] = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Heute',
+              data: todayData,
+              borderColor: '#1e3a3a',
+              backgroundColor: '#1e3a3a',
+              borderWidth: 2.5,
+              pointRadius: 3,
+              tension: 0.15,
+              spanGaps: false
+            },
+            {
+              label: 'Letzte Woche',
+              data: lastWeekData,
+              borderColor: '#94a3b8',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              pointRadius: 0,
+              tension: 0.15,
+              fill: false
+            },
+            {
+              label: 'Prognose',
+              data: proxyData,
+              borderColor: '#f59e0b',
+              borderWidth: 2.5,
+              borderDash: [2, 3],
+              pointRadius: 0,
+              tension: 0.15,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 10 } } },
+            tooltip: { mode: 'index', intersect: false }
+          },
+          scales: {
+            y: {
+              min: 0,
+              max: 1,
+              ticks: { callback: value => (value * 100) + '%' }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { maxRotation: 45, minRotation: 45, font: { size: 9 } }
+            }
+          }
+        }
+      });
     }
 
     async function initDashboard() {
@@ -438,10 +520,19 @@
       const timeContainer = document.getElementById('update-time');
       
       try {
-        const response = await fetch('./temp/oc_values.csv');
-        if (!response.ok) throw new Error('Daten konnten nicht geladen werden.');
+        // Parallel lookup initialization for historical parsing datasets
+        const [lwData, tdData, liveResponse] = await Promise.all([
+          parseCSVFile('./temp/oc_values_lw.csv'),
+          parseCSVFile('./temp/oc_values_today.csv'),
+          fetch('./temp/oc_values.csv')
+        ]);
+
+        timeSeriesData.lw = lwData;
+        timeSeriesData.td = tdData;
+
+        if (!liveResponse.ok) throw new Error('Live-Daten konnten nicht geladen werden.');
         
-        const text = await response.text();
+        const text = await liveResponse.text();
         const lines = text.trim().split('\n');
         
         let fileTimestamp = '';
@@ -460,6 +551,9 @@
 
           if (key.toLowerCase().startsWith('timestamp') || key.toLowerCase().startsWith('zeit')) {
             fileTimestamp = 'Stand: ' + valueStr;
+            // Extract the time string (e.g., "14:18") to handle the past/future thresholding in graph datasets
+            const match = valueStr.match(/(\d{2}:\d{2})/);
+            if (match) globalTimeString = match[1];
             continue;
           }
 
@@ -487,13 +581,22 @@
 
           gridHtml += `
             <div class="status-card">
-              <button class="info-btn" onclick="toggleInfo('${row.key}')" title="Information anzeigen" aria-label="Information anzeigen">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-              </button>
+              <div class="card-controls">
+                <button class="action-btn" onclick="toggleChart('${row.key}')" title="Zeitverlauf anzeigen" aria-label="Zeitverlauf anzeigen">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                  </svg>
+                </button>
+                <button class="action-btn" onclick="toggleInfo('${row.key}')" title="${description}" aria-label="Information anzeigen">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                </button>
+              </div>
               
               <div class="card-header">
                 <span class="card-label">${displayLabel}</span>
@@ -502,13 +605,19 @@
               <div class="card-info-text" id="info-${row.key}">
                 ${description}
               </div>
+
+              <div class="card-chart-container" id="chart-cont-${row.key}">
+                <div style="position: relative; height: 220px; width: 100%;">
+                  <canvas id="chart-${row.key}"></canvas>
+                </div>
+              </div>
               
               <div class="progress-wrapper">
                 <div class="progress-track">
                   <div class="progress-bar" style="width: ${Math.min(row.percentage, 100)}%; background-color: ${barColor};"></div>
                 </div>
               </div>
-              
+                
               <span class="card-meta">Gesamt: ${totalSeats} ${displayseats}</span>
             </div>
           `;
