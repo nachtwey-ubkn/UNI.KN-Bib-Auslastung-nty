@@ -246,7 +246,8 @@ def calc_occupancy(df_data):
             occup[loc] = round(occupancy, 2)
         else:
             occup[loc] = 0.0
-            
+            flag = f'No data found for location {loc}, occupancy set to 0' if flag == 'ok' else flag + f'; No data found for location {loc}, occupancy set to 0'
+       
     return occup, flag
 
 

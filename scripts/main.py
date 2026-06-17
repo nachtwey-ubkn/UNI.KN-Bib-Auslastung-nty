@@ -46,7 +46,14 @@ dfs_lw, timestamps_lw, flags_lw[0] = read_email(start_date, end_date)
 if flags_lw[0] == 'ok':
     df_lw, flags_lw[1]= process_serial_dfs(dfs_lw, timestamps_lw)
 if flags_lw[1] == 'ok':
-    df_today, flags_lw[2] = process_serial_dfs(dfs_data, timestamps)
+    # remove all dfs from dfs_data that have a timestamp that is not from today
+    dfs_data_today = [df for df, ts in zip(dfs_data, timestamps) if ts.strftime("%Y-%m-%d") == datetime.now().strftime("%Y-%m-%d")]   
+    timestamps_today = [ts for ts in timestamps if ts.strftime("%Y-%m-%d") == datetime.now().strftime("%Y-%m-%d")] 
+    # check if length of dfs_data_today and timestamps_today is the same, if not return error message
+    if len(dfs_data_today) != len(timestamps_today) and len(dfs_data_today) > 0:
+        flags_lw[2] = 'Error: Length of dfs_data_today and timestamps_today is zero or not the same'
+    else:
+        df_today, flags_lw[2] = process_serial_dfs(dfs_data_today, timestamps)
     
 if flags_lw[2] == 'ok':
     path_lw = os.path.join(os.getcwd(), 'docs/temp/oc_values_lw.csv')
