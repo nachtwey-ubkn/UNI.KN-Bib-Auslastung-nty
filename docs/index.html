@@ -134,7 +134,7 @@
       display: flex;
       align-items: flex-start;
       margin-bottom: 12px;
-      padding-right: 56px; /* Extra room for both action buttons */
+      padding-right: 56px;
     }
 
     .card-label {
@@ -144,7 +144,6 @@
       line-height: 1.3;
     }
 
-    /* Action controls placement container */
     .card-controls {
       position: absolute;
       top: 20px;
@@ -188,6 +187,7 @@
     .progress-wrapper {
       position: relative;
       width: 100%;
+      margin-bottom: 12px;
     }
 
     .progress-track {
@@ -204,7 +204,6 @@
       transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    /* Expandable containers styling */
     .card-info-text, .card-chart-container {
       font-size: 0.85rem;
       color: var(--muted);
@@ -222,15 +221,23 @@
     .card-info-text.visible {
       max-height: 150px; 
       padding: 10px 14px;
-      margin-bottom: 14px;
+      margin-top: 10px;
+      margin-bottom: 10px;
       border-width: 1px;
     }
 
     .card-chart-container.visible {
-      max-height: 260px;
+      max-height: 280px;
       padding: 12px;
-      margin-bottom: 14px;
+      margin-top: 10px;
+      margin-bottom: 10px;
       border-width: 1px;
+    }
+
+    .chart-layout-wrapper {
+      width: 100%;
+      height: 230px;
+      position: relative;
     }
 
     .meta-footer {
@@ -362,7 +369,7 @@
     };
 
     const areaLabelMap = {
-      'INFO': 'Info-Zentrum', 'BG23': 'Ebenen BG2/BG3', 'BG56': 'Ebenen BG5/BG6', 'BSLS': 'Lesesaal (Übergang BS6-BG6)', 'BSBG': 'Übergang BS5 nach BG5', 'BSEA': 'Übergang BS2/BS3 nach BG2/BG3', 'BSGA': 'Buchbereich BS', 'JGAR': 'Arbeitsräume J', 'JEAP': 'Einzelarbeitsplätze J'
+      'INFO': 'Info-Zentrum', 'BG23': 'Ebenen BG2/BG3', 'BG56': 'Ebenen BG5/BG6', 'BSLS': 'Lesesaal (Übergang BS6-BG6)', 'BSBG': 'Übergang BS5 nach BG5', 'BSEA': 'Übergang BS2/3 nach BG2/3', 'BSGA': 'Buchbereich BS', 'JGAR': 'Arbeitsräume J', 'JEAP': 'Einzelarbeitsplätze J'
     };
 
     const areaDescriptionMap = {
@@ -373,13 +380,45 @@
       'INFO': 'Plätze', 'BG23': 'Plätze', 'BG56': 'Plätze', 'BSLS': 'Plätze', 'BSBG': 'Räume', 'BSEA': 'Plätze', 'BSGA': 'Plätze', 'JGAR': 'Räume', 'JEAP': 'Plätze'
     };
 
-    // Global memory to hold loaded time series and tracking charts
     let timeSeriesData = { lw: {}, td: {} };
     let activeCharts = {};
-    let globalTimeString = "12:00"; // Fallback cutoff updated live by live-status file
+    let globalTimeString = "12:00"; 
+
+    const leftColorBarPlugin = {
+      id: 'leftColorBar',
+      beforeDraw(chart) {
+        const { ctx, chartArea: { left } } = chart;
+        const yScale = chart.scales.y;
+        
+        const y0 = yScale.getPixelForValue(0);
+        const y40 = yScale.getPixelForValue(0.4);
+        const y60 = yScale.getPixelForValue(0.6);
+        const y80 = yScale.getPixelForValue(0.8);
+        const y100 = yScale.getPixelForValue(1.0);
+
+        ctx.save();
+        const barWidth = 8; 
+        const barLeft = left + 4;
+
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(barLeft, y40, barWidth, y0 - y40);
+
+        ctx.fillStyle = '#f9e216';
+        ctx.fillRect(barLeft, y60, barWidth, y40 - y60);
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(barLeft, y80, barWidth, y60 - y80);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(barLeft, y100, barWidth, y80 - y100);
+
+        ctx.restore();
+      }
+    };
+
+    Chart.register(leftColorBarPlugin);
 
     function toggleInfo(key) {
-      // Close chart if open
       const chartCont = document.getElementById(`chart-cont-${key}`);
       if (chartCont && chartCont.classList.contains('visible')) {
         chartCont.classList.remove('visible');
@@ -389,7 +428,6 @@
     }
 
     function toggleChart(key) {
-      // Close info text if open
       const infoText = document.getElementById(`info-${key}`);
       if (infoText && infoText.classList.contains('visible')) {
         infoText.classList.remove('visible');
@@ -400,9 +438,13 @@
 
       chartCont.classList.toggle('visible');
 
-      // Build chart canvas dynamically if it is being visible and hasn't been instantiated yet
-      if (chartCont.classList.contains('visible') && !activeCharts[key]) {
-        buildAreaChart(key);
+      if (chartCont.classList.contains('visible')) {
+        if (activeCharts[key]) {
+          activeCharts[key].resize();
+          activeCharts[key].update();
+        } else {
+          buildAreaChart(key);
+        }
       }
     }
 
@@ -435,31 +477,50 @@
       const lwRaw = timeSeriesData.lw[key] || [];
       const tdRaw = timeSeriesData.td[key] || [];
 
-      // Align x-axis labels with timeline from historical data profile
-      const labels = lwRaw.map(d => d.time);
+      const hourLabels = lwRaw.map(d => d.time.split(':')[0] + ':00');
 
-      // Map out 'Today So Far' data up to cutoff time tracker
-      const todayData = labels.map(t => {
-        const entry = tdRaw.find(d => d.time === t);
-        return (entry && t <= globalTimeString) ? entry.capacity : null;
+      let lastValidIndex = -1;
+      const todayData = lwRaw.map((d, index) => {
+        const entry = tdRaw.find(t => t.time === d.time);
+        if (entry && d.time <= globalTimeString) {
+          lastValidIndex = index;
+          return entry.capacity;
+        }
+        return null;
       });
 
-      // Map out reference curve from last week
-      const lastWeekData = labels.map(t => {
-        const entry = lwRaw.find(d => d.time === t);
-        return entry ? entry.capacity : null;
-      });
+      const lastWeekData = lwRaw.map(d => d.capacity);
 
-      // Map out 'Proxy for Next Hours' matching remaining segment
-      const proxyData = labels.map(t => {
-        const entry = lwRaw.find(d => d.time === t);
-        return (entry && t >= globalTimeString) ? entry.capacity : null;
-      });
+      // Bestimme die Farbe für den finalen Punkt basierend auf dem letzten Wert
+      let liveColor = '#1e3a3a'; 
+      if (lastValidIndex !== -1) {
+        const lastVal = todayData[lastValidIndex];
+        if (lastVal > 0.8) liveColor = '#ef4444';
+        else if (lastVal > 0.6) liveColor = '#f59e0b';
+        else if (lastVal > 0.4) liveColor = '#f9e216';
+        else liveColor = '#10b981';
+      }
+
+      // Arrays für Punkt-Konfiguration aufbauen (Standard überall 0, d.h. unsichtbar)
+      const pointRadiusArray = new Array(todayData.length).fill(0);
+      const pointHoverRadiusArray = new Array(todayData.length).fill(0);
+      const pointBackgroundColorArray = new Array(todayData.length).fill('#1e3a3a');
+      const pointBorderColorArray = new Array(todayData.length).fill('#ffffff');
+      const pointBorderWidthArray = new Array(todayData.length).fill(0);
+
+      // Setze spezifische Styles NUR für den allerletzten Datenpunkt von heute
+      if (lastValidIndex !== -1) {
+        pointRadiusArray[lastValidIndex] = 5.5;
+        pointHoverRadiusArray[lastValidIndex] = 5.5;
+        pointBackgroundColorArray[lastValidIndex] = liveColor;
+        pointBorderColorArray[lastValidIndex] = '#ffffff';
+        pointBorderWidthArray[lastValidIndex] = 2;
+      }
 
       activeCharts[key] = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: labels,
+          labels: hourLabels,
           datasets: [
             {
               label: 'Heute',
@@ -467,9 +528,14 @@
               borderColor: '#1e3a3a',
               backgroundColor: '#1e3a3a',
               borderWidth: 2.5,
-              pointRadius: 3,
               tension: 0.15,
-              spanGaps: false
+              spanGaps: false,
+              // Zuweisung der dynamischen Punktkonfigurationen
+              pointRadius: pointRadiusArray,
+              pointHoverRadius: pointHoverRadiusArray,
+              pointBackgroundColor: pointBackgroundColorArray,
+              pointBorderColor: pointBorderColorArray,
+              pointBorderWidth: pointBorderWidthArray
             },
             {
               label: 'Letzte Woche',
@@ -478,16 +544,7 @@
               borderWidth: 2,
               borderDash: [5, 5],
               pointRadius: 0,
-              tension: 0.15,
-              fill: false
-            },
-            {
-              label: 'Prognose',
-              data: proxyData,
-              borderColor: '#f59e0b',
-              borderWidth: 2.5,
-              borderDash: [2, 3],
-              pointRadius: 0,
+              pointHoverRadius: 0,
               tension: 0.15,
               fill: false
             }
@@ -496,19 +553,33 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          hover: { mode: null },
+          layout: {
+            padding: {
+              left: 10,
+              right: 15
+            }
+          },
           plugins: {
             legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 10 } } },
-            tooltip: { mode: 'index', intersect: false }
+            tooltip: { enabled: false }
           },
           scales: {
             y: {
               min: 0,
-              max: 1,
-              ticks: { callback: value => (value * 100) + '%' }
+              max: 1.02, // Reduziert den Freiraum oberhalb des Graphen auf exakt 102%
+              ticks: { display: false }, 
+              grid: { color: 'rgba(30, 41, 59, 0.04)' }
             },
             x: {
               grid: { display: false },
-              ticks: { maxRotation: 45, minRotation: 45, font: { size: 9 } }
+              ticks: { 
+                maxRotation: 0, 
+                minRotation: 0, 
+                font: { size: 10 },
+                autoSkip: true,
+                maxTicksLimit: 8 
+              }
             }
           }
         }
@@ -520,7 +591,6 @@
       const timeContainer = document.getElementById('update-time');
       
       try {
-        // Parallel lookup initialization for historical parsing datasets
         const [lwData, tdData, liveResponse] = await Promise.all([
           parseCSVFile('./temp/oc_values_lw.csv'),
           parseCSVFile('./temp/oc_values_today.csv'),
@@ -551,7 +621,6 @@
 
           if (key.toLowerCase().startsWith('timestamp') || key.toLowerCase().startsWith('zeit')) {
             fileTimestamp = 'Stand: ' + valueStr;
-            // Extract the time string (e.g., "14:18") to handle the past/future thresholding in graph datasets
             const match = valueStr.match(/(\d{2}:\d{2})/);
             if (match) globalTimeString = match[1];
             continue;
@@ -602,19 +671,19 @@
                 <span class="card-label">${displayLabel}</span>
               </div>
               
+              <div class="progress-wrapper">
+                <div class="progress-track">
+                  <div class="progress-bar" style="width: ${Math.min(row.percentage, 100)}%; background-color: ${barColor};"></div>
+                </div>
+              </div>
+
               <div class="card-info-text" id="info-${row.key}">
                 ${description}
               </div>
 
               <div class="card-chart-container" id="chart-cont-${row.key}">
-                <div style="position: relative; height: 220px; width: 100%;">
+                <div class="chart-layout-wrapper">
                   <canvas id="chart-${row.key}"></canvas>
-                </div>
-              </div>
-              
-              <div class="progress-wrapper">
-                <div class="progress-track">
-                  <div class="progress-bar" style="width: ${Math.min(row.percentage, 100)}%; background-color: ${barColor};"></div>
                 </div>
               </div>
                 
