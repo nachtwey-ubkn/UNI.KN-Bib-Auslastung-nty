@@ -23,7 +23,7 @@ if flags[1] == 'ok':
     df_data, flags[2] = map_router_to_location(df_data)
     
 if flags[2] != 'No mapping found in environment':
-    occ, flags[3] = calc_occupancy(dfs_data)
+    occ, flags[3] = calc_occupancy(df_data)
     
 if flags[3] == 'ok':
     path = os.path.join(os.getcwd(), 'docs/temp/oc_values.csv')
