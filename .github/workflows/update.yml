@@ -5,13 +5,10 @@ name: UKN Bib Auslastung
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-# Control when workflow will run (only on repository dispatch)
+# Control when workflow will run
 on:
   repository_dispatch:
     types: [new-update]
-  #push:
-  #  branches:
-  #    - main
   workflow_dispatch: 
 
 permissions:
@@ -21,16 +18,13 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true # Geändert, um doppelte Uploads abzubrechen
 
 jobs:
   # Load data, compute data and upload to GitHub Pages
   compute-data:
-    # environment for job
-    # environment: production
-    # runner for job
     runs-on: ubuntu-latest
-    # environment variables for job
+    # Hier ziehen wir die Secrets direkt aus den globalen Repository-Secrets
     env:
       CAPACITY: "${{ secrets.CAPACITY }}"
       MAPPING: "${{ secrets.MAPPING }}"
@@ -48,7 +42,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      
+        
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
