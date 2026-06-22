@@ -27,7 +27,7 @@ jobs:
   # Load data, compute data and upload to GitHub Pages
   compute-data:
     # environment for job
-    environment: production
+    # environment: production
     # runner for job
     runs-on: ubuntu-latest
     # environment variables for job
