@@ -312,7 +312,7 @@ def process_serial_dfs(dfs, df_timestamps):
             df_copy["area"] = df_copy["AP Name"].map(location_map)
             
             # Add timestamps to the DataFrame
-            t_val = timestamps[i]
+            t_val = df_timestamps[i]
             df_copy["time"] = t_val.strftime("%H:%M") if isinstance(t_val, pd.Timestamp) else str(t_val)[:5]
             
             # Keep only operational slices
