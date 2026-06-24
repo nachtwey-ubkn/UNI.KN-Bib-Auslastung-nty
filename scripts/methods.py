@@ -271,14 +271,14 @@ def save_as_csv(occupancy, path, time=None):
             f.write(f"timestamp,{time}\n")
     
         
-def process_serial_dfs(dfs, timestamps):
+def process_serial_dfs(dfs, df_timestamps):
     """
     Process dataframes for serial occupancy calculation by mapping router names to locations, 
     summing up user numbers, and calculating occupancy based on capacity.
     
     Args:        
         dfs (list): List of DataFrames containing the data from the CSV attachments.
-        timestamps (list): List of timestamps corresponding to each DataFrame.
+        df_timestamps (list): List of df_timestamps corresponding to each DataFrame.
         
     Returns:
         df_area (DataFrame): DataFrame containing the occupancy values for each area and time.
