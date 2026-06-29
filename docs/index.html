@@ -477,29 +477,35 @@
       const lwRaw = timeSeriesData.lw[key] || [];
       const tdRaw = timeSeriesData.td[key] || [];
 
-      // Hilfsfunktion: Extrahiert NUR die Stunde muss angepasst werden für höher frequentierte Daten
-      const getHour = (timeStr) => {
+      // NEU: Extrahiert jetzt Stunde UND Minute (z.B. "08:30")
+      const getTimeString = (timeStr) => {
         if (!timeStr) return '';
         const parts = timeStr.trim().split(':');
-        return parts[0].padStart(2, '0');
+        return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
       };
 
-      const currentLiveHour = getHour(globalTimeString);
-      const hourLabels = lwRaw.map(d => getHour(d.time) + ':00');
+      const currentLiveTime = getTimeString(globalTimeString);
+      const hourLabels = lwRaw.map(d => getTimeString(d.time));
 
       let lastValidIndex = -1;
       const todayData = lwRaw.map((d, index) => {
-        const lwHour = getHour(d.time);
+        const lwTime = getTimeString(d.time);
         
-        const entry = tdRaw.find(t => getHour(t.time) === lwHour);
+        // Findet den exakt passenden 30-Minuten-Eintrag von heute
+        const entry = tdRaw.find(t => getTimeString(t.time) === lwTime);
         
         // Zeige Daten nur bis zur aktuellen Live-Uhrzeit an
-        if (entry && lwHour <= currentLiveHour) {
+        if (entry && lwTime <= currentLiveTime) {
           lastValidIndex = index;
           const val = parseFloat(entry.capacity);
           return isNaN(val) ? null : val;
         }
         return null;
+      });
+
+      const lastWeekData = lwRaw.map(d => {
+        const val = parseFloat(d.capacity);
+        return isNaN(val) ? null : val;
       });
 
       const lastWeekData = lwRaw.map(d => {
